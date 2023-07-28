@@ -1,7 +1,7 @@
 export enum Product {
-    APPLE,
-    PEAR,
-    TOMATO,
-    POTATO,
-    ONION
+    APPLE = "APPLE",
+    PEAR = "PEAR",
+    TOMATO = "TOMATO",
+    POTATO = "POTATO",
+    ONION = "ONION"
 }

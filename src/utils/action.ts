@@ -1,6 +1,6 @@
 export enum Action {
-    BUY,
-    SELL,
-    TRADE,
-    ACK
+    BUY = "BUY",
+    SELL = "SELL",
+    TRADE = "TRADE",
+    ACK = "ACK"
 }
