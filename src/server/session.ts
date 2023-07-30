@@ -1,86 +1,81 @@
 import * as net from "net";
-import { Product } from '../utils/product';
-import dayjs from 'dayjs';
+import { LOG } from "../utils/log";
+import { isProduct } from "../utils/product";
 
 interface OrdersDto {
-  BUY: Record<string, net.Socket[]>; 
-  SELL: Record<string, net.Socket[]>;
+	BUY: Record<Product, Session[]>;
+	SELL: Record<Product, Session[]>;
 }
 
 export class Session {
-  private id: string;
-  private socket: net.Socket | null;
-  private sessions: Session[];
-  public static orders: OrdersDto = {
-    BUY: {
-      [Product.APPLE]: [],
-      [Product.PEAR]: [],
-      [Product.TOMATO]: [],
-      [Product.POTATO]: [],
-      [Product.ONION]: []
-    },
-    SELL: {
-      [Product.APPLE]: [],
-      [Product.PEAR]: [],
-      [Product.TOMATO]: [],
-      [Product.POTATO]: [],
-      [Product.ONION]: []
-    }
-  };
+	private id: string;
+	private socket: net.Socket | null;
+	public static orders: OrdersDto = {
+		BUY: {},
+		SELL: {},
+	} as OrdersDto;
 
-  constructor(id: string, socket: net.Socket, sessions: Session[]) {
-    this.id = id;
-    this.socket = socket;
-    this.sessions = sessions;
-    this._bindSocketEvents(socket);
-  }
+	constructor(id: string, socket: net.Socket) {
+		this.id = id;
+		this.socket = socket;
+		this.bindSocketEvents(socket);
+	}
 
-  get getSocket() {
-    return this.socket;
-  }
+	get getSocket() {
+		return this.socket;
+	}
 
-  get getIp() {
-    return (this.socket && this.socket.remoteAddress) || "";
-  }
+	get getIp() {
+		return this.socket?.remoteAddress || "";
+	}
 
-  dispose() {
-    this.socket = null;
-  }
+	dispose() {
+		this.socket = null;
+	}
 
-  private _bindSocketEvents(socket: net.Socket) {
-    // binding listeners:
-    socket.on("data", (data: Buffer) => {
-      const message = data.toString().trim();
-      const [orderType, product] = message.split(":");
+	private bindSocketEvents(socket: net.Socket) {
+		socket.on("data", (data: Buffer) => {
+			const message = data.toString("utf-8").trim();
+			const [action, product]: [Action, Product] = message.split(":") as [Action, Product];
 
-      if (orderType === "BUY" || orderType === "SELL") {
-        this.handleOrder(socket, orderType, product);
-      }
-      console.log(`${dayjs().format('HH:mm:ss')} new ${orderType} order (${this.id}, ${product})`);
-    });
+			if (action && (action === "BUY" || action === "SELL")) {
+				if (product && isProduct(product)) {
+					LOG.newOrder(action, product, this.id);
+					this.handleAction(this, action, product);
+				} else {
+					this.getSocket?.write("Product not exists!\n");
+				}
+			} else {
+				this.getSocket?.write("Forbidden action!\n");
+			}
+		});
 
-    socket.on("error", (err: any) => {
-      // Socket Error handler:
-      //   LOG.e(this.tag, err.toString());
-    });
+		socket.on("error", (err: any) => {
+			LOG.error(err.toString());
+		});
 
-    socket.on("close", () => {
-      //   LOG.i(this.tag, this.id, this.ip, 'socket disconnected');
-    });
-  }
+		socket.on("close", () => {
+			LOG.clientDisconnected(this.getIp, this.id);
+		});
+	}
 
-  handleOrder(client: net.Socket, orderType: keyof OrdersDto, product: string) {
-    const oppositeOrderType: keyof OrdersDto = orderType === 'BUY' ? 'SELL' : 'BUY';
-    
-    if (Session.orders[oppositeOrderType][product] && Session.orders[oppositeOrderType][product].length > 0) {
-      const oppositeOrder = Session.orders[oppositeOrderType][product].shift();
-      const message = `TRADE:${product}\n`;
-      client.write(message);
-      if (oppositeOrder) oppositeOrder.write(message);
-    } else {
-      Session.orders[orderType][product].push(client);
-      const ackMessage = `ACK:${product}\n`;
-      client.write(ackMessage);
-    }
-  }
+	handleAction(session: Session, action: Exclude<Action, "TRADE" | "ACK">, product: Product) {
+		const oppositeAction: Exclude<Action, "TRADE" | "ACK"> = action === "BUY" ? "SELL" : "BUY";
+
+		if (
+			Session.orders[oppositeAction][product] &&
+			Session.orders[oppositeAction][product].length > 0
+		) {
+			const oppositeOrder = Session.orders[oppositeAction][product].shift();
+			const message = `TRADE:${product}\n`;
+			LOG.newOrder("TRADE", product, this.id);
+			if (session) session.getSocket?.write(message);
+			if (oppositeOrder) oppositeOrder.getSocket?.write(message);
+		} else {
+			if (!Session.orders[action][product]?.length) Session.orders[action][product] = [];
+			Session.orders[action][product].push(session);
+			const ackMessage = `ACK:${product}\n`;
+			session.getSocket?.write(ackMessage);
+		}
+	}
 }

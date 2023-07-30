@@ -1,0 +1,1 @@
+type Action = "BUY" | "SELL" | "TRADE" | "ACK";
