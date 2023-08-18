@@ -1,8 +1,34 @@
 # Trading app
 
-### Startup
+Simple trading system for trading commodities. The project was made in ***NodeJS*** using the ***net*** package to create a simple TCP server.
 
-*Zainstalowanie zależności*
+
+**Requirements:**
+
+- Available commodities: Apples, Pears, Tomatoes, Potatoes, Onions
+- All commodities are in crates (there is no other unit of measurement)
+- A buy and sell order covers only one crate (e.g., wanting to buy 5 crates of tomatoes requires sending 5 separate orders to the system, the same applies to selling)
+- Orders are paired by product (e.g., a sell order for apples with a buy order for apples)
+- We are not creating authorization mechanisms
+- All connected users are notified about executed transactions
+
+
+
+
+### Message structure:
+
+    BUY:{PRODUCT} - buy order (input)
+    SELL:{PRODUCT} - sell order (input)
+    TRADE:{PRODUCT} - server message about executed transaction (output)
+    ACK:{PRODUCT} - server message confirming order receipt (output)
+
+### Example
+
+![example]();
+
+## Getting started
+
+- *Install dependencies*
 ```bash
 npm install
 
@@ -10,29 +36,26 @@ npm install
 npm run build
 ```
 
-*Uruchomienie aplikacji:*
+- *Uruchomienie aplikacji:*
 
----
-- Lokalnie
+
 ```bash
-npm run build
+npm run start
 ```
+
+
+***Docker***
+- *Devcontainer (preinstall netcat)*
+
 ---
 
-- Devcontainer (preinstalowany netcat)
-
-*Otworzyć projekt w VS Code, a następnie ***Reopen in remote Container****
-
----
-
-- Dockerfile
+- *Dockerfile*
 ```bash
 docker build -t trading_app .
 docker run -itd -p 8888:8888 trading_app
 ```
 ---
-- docker-compose
+- *docker-compose*
 ```bash
 docker-compose up -d
 ```
----
