@@ -24,7 +24,7 @@ Simple trading system for trading commodities. The project was made in ***NodeJS
 
 ### Example
 
-![example]();
+![example](https://github.com/orzelAr3k/trading-app-nodejs/assets/63066341/b1ce925a-9b61-45b7-8a24-490ff46179b3)
 
 ## Getting started
 
